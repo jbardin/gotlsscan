@@ -7,12 +7,18 @@ import (
 	"log"
 	"net"
 	"os"
+	"time"
 )
 
 type tlsKV struct {
 	name string
 	val  uint16
 }
+
+var (
+	// use this for Dial and Handshake
+	timeout = 10 * time.Second
+)
 
 var versions = []tlsKV{
 	{"SSL30 (DISABLED)", tls.VersionSSL30},
@@ -63,10 +69,11 @@ func main() {
 			cfg.MaxVersion = v.val
 			cfg.CipherSuites = []uint16{c.val}
 
-			conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", *host, *port))
+			conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", *host, *port), timeout)
 			if err != nil {
 				log.Fatal(err)
 			}
+			conn.SetDeadline(time.Now().Add(timeout))
 
 			tlsConn := tls.Client(conn, cfg)
 			err = tlsConn.Handshake()
