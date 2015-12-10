@@ -81,18 +81,20 @@ func main() {
 			if err != nil {
 				e := err.Error()
 				if !strings.Contains(e, "handshake failure") && !strings.Contains(e, "illegal parameter") {
-					fmt.Printf("\t%s %s\n", c.name, err)
+					fmt.Printf("\t%-45s [NOT SUPPORTED] %s\n", c.name, err)
+				} else {
+					fmt.Printf("\t%-45s [NOT SUPPORTED]\n", c.name)
 				}
 			} else {
 				any = true
-				fmt.Printf("\t%s\n", c.name)
+				fmt.Printf("\t%-45s [OK]\n", c.name)
 			}
 
 			tlsConn.Close()
 		}
 
 		if !any {
-			fmt.Println("\tNOT SUPPORTED")
+			fmt.Println("\t[NOT SUPPORTED]")
 		}
 
 	}
