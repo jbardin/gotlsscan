@@ -19,6 +19,10 @@ type tlsKV struct {
 var (
 	// use this for Dial and Handshake
 	timeout = 10 * time.Second
+
+	host     string
+	port     string
+	insecure bool
 )
 
 var versions = []tlsKV{
@@ -33,6 +37,8 @@ var ciphers = []tlsKV{
 	{"TLS_RSA_WITH_3DES_EDE_CBC_SHA", tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA},
 	{"TLS_RSA_WITH_AES_128_CBC_SHA", tls.TLS_RSA_WITH_AES_128_CBC_SHA},
 	{"TLS_RSA_WITH_AES_256_CBC_SHA", tls.TLS_RSA_WITH_AES_256_CBC_SHA},
+	{"TLS_RSA_WITH_AES_128_GCM_SHA256", tls.TLS_RSA_WITH_AES_128_GCM_SHA256},
+	{"TLS_RSA_WITH_AES_256_GCM_SHA384", tls.TLS_RSA_WITH_AES_256_GCM_SHA384},
 	{"TLS_ECDHE_ECDSA_WITH_RC4_128_SHA (DISABLED)", tls.TLS_ECDHE_ECDSA_WITH_RC4_128_SHA},
 	{"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA", tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA},
 	{"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA", tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA},
@@ -47,30 +53,29 @@ var ciphers = []tlsKV{
 }
 
 func main() {
-	host := flag.String("host", "", "host")
-	port := flag.String("port", "443", "port")
-	insecure := flag.Bool("insecure", false, "skip certificate verification")
+	flag.StringVar(&host, "host", "", "host")
+	flag.StringVar(&port, "port", "443", "port")
+	flag.BoolVar(&insecure, "insecure", false, "skip certificate verification")
 	flag.Parse()
 
-	if *host == "" {
+	if host == "" {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
 
 	cfg := &tls.Config{
-		ServerName:         *host,
-		InsecureSkipVerify: *insecure,
+		ServerName:         host,
+		InsecureSkipVerify: insecure,
 	}
 
 	for _, v := range versions {
 		fmt.Println("Testing", v.name)
-		any := false
 		for _, c := range ciphers {
 			cfg.MinVersion = v.val
 			cfg.MaxVersion = v.val
 			cfg.CipherSuites = []uint16{c.val}
 
-			conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", *host, *port), timeout)
+			conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", host, port), timeout)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -86,16 +91,10 @@ func main() {
 					fmt.Printf("\t%-45s [NOT SUPPORTED]\n", c.name)
 				}
 			} else {
-				any = true
 				fmt.Printf("\t%-45s [OK]\n", c.name)
 			}
 
 			tlsConn.Close()
 		}
-
-		if !any {
-			fmt.Println("\t[NOT SUPPORTED]")
-		}
-
 	}
 }
